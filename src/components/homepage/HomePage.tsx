@@ -1,4 +1,4 @@
-import { Contract, providers as ethersProviders, utils } from 'ethers';
+import { Contract, providers as ethersProviders } from 'ethers';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Redux from 'redux';
@@ -16,7 +16,6 @@ type Props = IStateProps & IDispatchProps & IOwnProps;
 
 interface IState {
   account?: string;
-  allocation?: string | boolean;
   buttonActive?: boolean;
   contract?: Contract;
   transaction?: any;
@@ -37,10 +36,10 @@ class HomePage extends Component<Props, IState> {
 
   public withdrawTokens = async () => {
     this.setState({ buttonActive: false });
-    const { contract } = this.state;
+    const { contract, account } = this.state;
     if (contract) {
       try {
-        const transaction = await contract.withdrawTokens();
+        const transaction = await contract.claimLockedTokens(account);
         this.setState({
           transaction
         });
@@ -53,83 +52,83 @@ class HomePage extends Component<Props, IState> {
   };
 
   public render() {
-    const { account, allocation, buttonActive, transaction } = this.state;
+    const { account, buttonActive, transaction } = this.state;
     return (
       <div className="Page">
         <h2>Hi {account},</h2>
-        {allocation === false && (
+        <div>
           <p style={{ marginTop: '2em' }}>
-            During the bounty campaign for the DataBrokerDao token sale, you
-            earned no DTX or you already withdrew them. If you have questions,
-            please get in contact via the{' '}
-            <a href="https://t.me/DataBrokerDAOBounty">
-              Bounty Telegram channel
-            </a>.
+            End of May 2018, the DataBrokerDAO team{' '}
+            <a href="https://medium.com/databrokerdao/next-steps-for-databrokerdao-and-the-ecosystem-de6770b5a567">
+              decided to distribute
+            </a>{' '}
+            a large portion of the unsold tokens to the supporters by doubling
+            all tokens. These double tokens are however locked until October
+            1st. While the smart contract does not allow us to show you how much
+            your address might have locked up, you will have if you held DTX
+            tokens in your address on the 4th of July 2018. If you have
+            questions about this, please get in contact via the{' '}
+            <a href="https://t.me/DataBrokerDAO">Telegram channel</a>.
           </p>
-        )}
-        {allocation && (
-          <div>
-            <p style={{ marginTop: '2em' }}>
-              During the bounty campaign for the DataBrokerDao token sale, you
-              earned <strong>{allocation} DTX</strong>. If you have questions
-              about the amount, please get in contact via the{' '}
-              <a href="https://t.me/DataBrokerDAOBounty">
-                Bounty Telegram channel
-              </a>.
-            </p>
-            <p>
-              You can now withdraw them by pressing the button below, which will
-              send a transaction to the smart contract transferring the DTX
-              tokens to your account.
-            </p>
-            {!transaction &&
-              buttonActive && (
-                <button
-                  disabled={!buttonActive}
-                  type="button"
-                  className="btn btn-primary btn-block"
-                  onClick={this.withdrawTokens}
-                >
-                  Withdraw tokens
-                </button>
-              )}
-            {!transaction &&
-              !buttonActive && (
-                <div>
-                  <div className="progress" style={{ marginBottom: '2em' }}>
-                    <div
-                      className="progress-bar progress-bar-striped progress-bar-animated"
-                      role="progressbar"
-                      style={{ width: '75%' }}
-                    />
-                  </div>
-                  <p style={{ fontWeight: 700 }}>
-                    Your transaction has been sent to the chain and is waiting
-                    to be accepted in the transaction pool. This might take a
-                    few minutes. This page will update when completed.
-                  </p>
-                </div>
-              )}
-            {transaction && (
+          <p>
+            You can withdraw them, <strong>after October 1st</strong>, by
+            pressing the button below. Pressing this button will send a
+            transaction via MetaMask to the smart contract transferring the DTX
+            tokens to your account.
+          </p>
+          <p>
+            <em>
+              ps. you might have locked tokens for another reason. This dAPP
+              works for you too, just keep in mind your personal lockup dates.
+            </em>
+          </p>
+          {!transaction &&
+            buttonActive && (
+              <button
+                disabled={!buttonActive}
+                type="button"
+                className="btn btn-primary btn-block"
+                onClick={this.withdrawTokens}
+              >
+                Unlock my DTX tokens
+              </button>
+            )}
+          {!transaction &&
+            !buttonActive && (
               <div>
                 <div className="progress" style={{ marginBottom: '2em' }}>
                   <div
-                    className="progress-bar progress-bar-striped"
+                    className="progress-bar progress-bar-striped progress-bar-animated"
                     role="progressbar"
-                    style={{ width: '100%' }}
+                    style={{ width: '75%' }}
                   />
                 </div>
                 <p style={{ fontWeight: 700 }}>
-                  Your transaction has been sent to the chain and you can follow
-                  along with{' '}
-                  <a href={`https://etherscan.io/tx/${transaction.hash}`}>
-                    the processing of this transaction on Etherscan
-                  </a>.
+                  Your transaction has been sent to the chain and is waiting to
+                  be accepted in the transaction pool. This might take a few
+                  minutes. This page will update when completed.
                 </p>
               </div>
             )}
-          </div>
-        )}
+          {transaction && (
+            <div>
+              <div className="progress" style={{ marginBottom: '2em' }}>
+                <div
+                  className="progress-bar progress-bar-striped"
+                  role="progressbar"
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <p style={{ fontWeight: 700 }}>
+                Your transaction has been sent to the chain and you can follow
+                along with{' '}
+                <a href={`https://etherscan.io/tx/${transaction.hash}`}>
+                  the processing of this transaction on Etherscan
+                </a>.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -141,20 +140,12 @@ class HomePage extends Component<Props, IState> {
       const account = accounts[0];
 
       const contract = new Contract(
-        '0x8bf82372f60100399dc633581ef4a40366a98750',
+        '0x439b54caf661c21e6b231d972d7eaa98f199590f',
         abi,
         provider.getSigner()
       );
-      const rawAllocation = await contract.balances(account);
-      let allocation;
-      if (rawAllocation.isZero()) {
-        allocation = false;
-      } else {
-        allocation = utils.formatEther(rawAllocation, { commify: true });
-      }
       return {
         account,
-        allocation,
         contract
       };
     }
@@ -180,9 +171,25 @@ export default connect<IStateProps, IDispatchProps, IOwnProps>(
 
 const abi = [
   {
+    constant: false,
+    inputs: [
+      { name: '_startPresaleTime', type: 'uint256' },
+      { name: '_endPresaleTime', type: 'uint256' },
+      { name: '_startDayOneTime', type: 'uint256' },
+      { name: '_endDayOneTime', type: 'uint256' },
+      { name: '_startTime', type: 'uint256' },
+      { name: '_endTime', type: 'uint256' }
+    ],
+    name: 'updateDates',
+    outputs: [],
+    payable: false,
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
+  {
     constant: true,
-    inputs: [{ name: '', type: 'address' }],
-    name: 'balances',
+    inputs: [],
+    name: 'lockedTokens',
     outputs: [{ name: '', type: 'uint256' }],
     payable: false,
     stateMutability: 'view',
@@ -191,7 +198,101 @@ const abi = [
   {
     constant: true,
     inputs: [],
-    name: 'allocatedTotal',
+    name: 'TOKENS_PER_ETHER_EARLYSALE',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'endPresaleTime',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'totalVested',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: false,
+    inputs: [{ name: '_owner', type: 'address' }],
+    name: 'claimLockedTokens',
+    outputs: [],
+    payable: false,
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'endTime',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'HARD_CAP',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: false,
+    inputs: [{ name: '_newController', type: 'address' }],
+    name: 'changeController',
+    outputs: [],
+    payable: false,
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'vaultAddress',
+    outputs: [{ name: '', type: 'address' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: '_from', type: 'address' },
+      { name: '', type: 'address' },
+      { name: '', type: 'uint256' }
+    ],
+    name: 'onTransfer',
+    outputs: [{ name: 'success', type: 'bool' }],
+    payable: false,
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
+  {
+    constant: false,
+    inputs: [],
+    name: 'pauseContribution',
+    outputs: [],
+    payable: false,
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'TOKENS_PER_ETHER_PRESALE',
     outputs: [{ name: '', type: 'uint256' }],
     payable: false,
     stateMutability: 'view',
@@ -209,16 +310,7 @@ const abi = [
   {
     constant: false,
     inputs: [],
-    name: 'renounceOwnership',
-    outputs: [],
-    payable: false,
-    stateMutability: 'nonpayable',
-    type: 'function'
-  },
-  {
-    constant: false,
-    inputs: [],
-    name: 'withdrawTokens',
+    name: 'finalizeSale',
     outputs: [],
     payable: false,
     stateMutability: 'nonpayable',
@@ -227,8 +319,44 @@ const abi = [
   {
     constant: true,
     inputs: [],
-    name: 'owner',
-    outputs: [{ name: '', type: 'address' }],
+    name: 'paused',
+    outputs: [{ name: '', type: 'bool' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'totalIssuedEarlySale',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: false,
+    inputs: [],
+    name: 'makeTransferable',
+    outputs: [],
+    payable: false,
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'TOKENS_PER_ETHER',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'startTime',
+    outputs: [{ name: '', type: 'uint256' }],
     payable: false,
     stateMutability: 'view',
     type: 'function'
@@ -237,9 +365,9 @@ const abi = [
     constant: false,
     inputs: [
       { name: '_recipients', type: 'address[]' },
-      { name: '_amounts', type: 'uint256[]' }
+      { name: '_ethAmounts', type: 'uint256[]' }
     ],
-    name: 'allocateTokens',
+    name: 'handleEarlySaleBuyers',
     outputs: [],
     payable: false,
     stateMutability: 'nonpayable',
@@ -247,32 +375,153 @@ const abi = [
   },
   {
     constant: false,
-    inputs: [{ name: '_newOwner', type: 'address' }],
-    name: 'transferOwnership',
+    inputs: [
+      { name: '_recipients', type: 'address[]' },
+      { name: '_free', type: 'uint256[]' },
+      { name: '_locked', type: 'uint256[]' },
+      { name: '_cliffs', type: 'uint256[]' }
+    ],
+    name: 'handleExternalBuyers',
     outputs: [],
     payable: false,
     stateMutability: 'nonpayable',
     type: 'function'
   },
   {
-    inputs: [{ name: '_tokenAddress', type: 'address' }],
+    constant: true,
+    inputs: [],
+    name: 'transferable',
+    outputs: [{ name: '', type: 'bool' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'finalized',
+    outputs: [{ name: '', type: 'bool' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: false,
+    inputs: [],
+    name: 'resumeContribution',
+    outputs: [],
+    payable: false,
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'startPresaleTime',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: false,
+    inputs: [{ name: '_newController', type: 'address' }],
+    name: 'changeTokenController',
+    outputs: [],
+    payable: false,
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: '_owner', type: 'address' },
+      { name: '', type: 'address' },
+      { name: '', type: 'uint256' }
+    ],
+    name: 'onApprove',
+    outputs: [{ name: 'success', type: 'bool' }],
+    payable: false,
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'TOKENS_PER_ETHER_DAY_ONE',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'MAX_TOKENS',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: false,
+    inputs: [{ name: '_owner', type: 'address' }],
+    name: 'proxyPayment',
+    outputs: [{ name: 'success', type: 'bool' }],
+    payable: true,
+    stateMutability: 'payable',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'totalIssued',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'controller',
+    outputs: [{ name: '', type: 'address' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'endDayOneTime',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'startDayOneTime',
+    outputs: [{ name: '', type: 'uint256' }],
+    payable: false,
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    inputs: [
+      { name: '_startPresaleTime', type: 'uint256' },
+      { name: '_endPresaleTime', type: 'uint256' },
+      { name: '_startDayOneTime', type: 'uint256' },
+      { name: '_endDayOneTime', type: 'uint256' },
+      { name: '_startTime', type: 'uint256' },
+      { name: '_endTime', type: 'uint256' },
+      { name: '_vaultAddress', type: 'address' },
+      { name: '_tokenAddress', type: 'address' }
+    ],
     payable: false,
     stateMutability: 'nonpayable',
     type: 'constructor'
   },
-  {
-    anonymous: false,
-    inputs: [{ indexed: true, name: 'previousOwner', type: 'address' }],
-    name: 'OwnershipRenounced',
-    type: 'event'
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: 'previousOwner', type: 'address' },
-      { indexed: true, name: 'newOwner', type: 'address' }
-    ],
-    name: 'OwnershipTransferred',
-    type: 'event'
-  }
+  { payable: true, stateMutability: 'payable', type: 'fallback' }
 ];

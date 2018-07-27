@@ -74,7 +74,7 @@ export default class App extends React.Component<Props, IState> {
       <div className="AppWrapper">
         <div className="Header">
           <img src="/images/logo.svg" alt="DataBrokerDAO" width="250" />
-          <h1>Bounty Redeem dAPP</h1>
+          <h1>Unlock DTX dAPP</h1>
         </div>
         <div className="PageContainer">
           <Switch>

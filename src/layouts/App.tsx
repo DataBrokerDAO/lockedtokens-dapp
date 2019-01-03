@@ -31,9 +31,9 @@ export default class App extends React.Component<Props, IState> {
   constructor(props: Props) {
     super(props);
     let provider;
-    if ((global as any).window && ((global as any).window as any).web3) {
+    if ((global as any).window && ((global as any).window as any).ethereum) {
       provider = new ethersProviders.Web3Provider(
-        (window as any).web3.currentProvider,
+        ((global as any).window as any).ethereum,
         {
           chainId: 1,
           ensAddress: '0x314159265dd8dbb310642f98f50c066173c1259b',
@@ -47,8 +47,12 @@ export default class App extends React.Component<Props, IState> {
     };
   }
 
+
+
+
   public async componentDidMount() {
-    if (this.state.provider && ((global as any).window as any).web3) {
+    if (this.state.provider && ((global as any).window as any).ethereum  )  {
+      await ((global as any).window as any).ethereum.enable();
       const accounts = await this.state.provider.listAccounts();
       if (accounts.length === 0) {
         this.setState({
